@@ -1,5 +1,5 @@
 /* eslint-disable */
-import { Entity, ManyToOne, MikroORM, PrimaryKey, Property, ref, Ref, wrap } from "@mikro-orm/postgresql";
+import { Entity, ManyToOne, MikroORM, PrimaryKey, Property, ref, Ref, wrap } from "@mikro-orm/sqlite";
 
 @Entity()
 class Organisation {
@@ -49,8 +49,8 @@ beforeAll(async () => {
     contextName: 'admin',
     entities: [Organisation, User, Book],
     debug: ["query", "query-params"],
-    dbName: 'test',
-    host: 'postgre',
+    dbName: ':memory:',
+    // host: 'postgre',
     allowGlobalContext: true,
   });
 
