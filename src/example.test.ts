@@ -78,14 +78,12 @@ afterAll(async () => {
 test('app test case', async () => {
   const orm = ormApp;
   const bookQ1 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-  const wrapped1 = wrap(bookQ1);
-  console.dir((wrapped1 as any).__originalEntityData);
+  console.dir((wrap(bookQ1) as any).__originalEntityData);
   // { org: 1, id: 21, name: 'Book 1', user: [ 1, 11 ] }
 
 
   const bookQ2 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-  const wrapped2 = wrap(bookQ2);
-  console.dir((wrapped2 as any).__originalEntityData);
+  console.dir((wrap(bookQ2) as any).__originalEntityData);
   // { org: 1, id: 21, name: 'Book 1', user: { org: 1, id: 11 } }
 
   // Note: the original entity data for the user relation is different after the second query.
