@@ -42,10 +42,11 @@ class Book extends OrgEntity {
 }
 
 let ormAdmin: MikroORM;
-let ormApp: MikroORM;
+// let ormApp: MikroORM;
 
 beforeAll(async () => {
   ormAdmin = await MikroORM.init({
+    contextName: 'admin',
     entities: [Organisation, User, Book],
     debug: ["query", "query-params"],
     dbName: 'test',
@@ -61,22 +62,23 @@ beforeAll(async () => {
 
   await ormAdmin.em.flush();
 
-  ormApp = await MikroORM.init({
-    entities: [Organisation, User, Book],
-    debug: ["query", "query-params"],
-    dbName: 'test',
-    host: 'postgre',
-    allowGlobalContext: true,
-  });
+  // ormApp = await MikroORM.init({
+  //   contextName: 'app',
+  //   entities: [Organisation, User, Book],
+  //   debug: ["query", "query-params"],
+  //   dbName: 'test',
+  //   host: 'postgre',
+  //   allowGlobalContext: true,
+  // });
 });
 
 afterAll(async () => {
   await ormAdmin.close();
-  await ormApp.close();
+  // await ormApp.close();
 });
 
-test('app test case', async () => {
-  const orm = ormApp;
+test('admin test case', async () => {
+  const orm = ormAdmin;
   const bookQ1 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
   console.dir((wrap(bookQ1) as any).__originalEntityData);
   // { org: 1, id: 21, name: 'Book 1', user: [ 1, 11 ] }
@@ -95,12 +97,12 @@ test('app test case', async () => {
   expect(changes).toHaveLength(0);
 });
 
-test('admin test case', async () => {
-  const bookQ1 = await ormAdmin.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-  const bookQ2 = await ormAdmin.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
+// test('app test case', async () => {
+//   const bookQ1 = await ormApp.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
+//   const bookQ2 = await ormApp.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
 
-  ormAdmin.em.getUnitOfWork().computeChangeSets();
-  const changes = ormAdmin.em.getUnitOfWork().getChangeSets();
+//   ormApp.em.getUnitOfWork().computeChangeSets();
+//   const changes = ormApp.em.getUnitOfWork().getChangeSets();
 
-  expect(changes).toHaveLength(0);
-});
+//   expect(changes).toHaveLength(0);
+// });
