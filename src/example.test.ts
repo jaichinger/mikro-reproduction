@@ -62,6 +62,8 @@ beforeAll(async () => {
   await orm.em.flush();
 });
 
+beforeEach(() => { orm.em.clear() });
+
 afterAll(async () => {
   await orm.close();
 });
