@@ -41,11 +41,10 @@ class Book extends OrgEntity {
   user!: Ref<User>;
 }
 
-let ormAdmin: MikroORM;
-// let ormApp: MikroORM;
+let orm: MikroORM;
 
 beforeAll(async () => {
-  ormAdmin = await MikroORM.init({
+  orm = await MikroORM.init({
     contextName: 'admin',
     entities: [Organisation, User, Book],
     debug: ["query", "query-params"],
@@ -54,31 +53,20 @@ beforeAll(async () => {
     allowGlobalContext: true,
   });
 
-  await ormAdmin.schema.refreshDatabase();
+  await orm.schema.refreshDatabase();
 
-  const org = ormAdmin.em.create(Organisation, { id: 1 });
-  const user = ormAdmin.em.create(User, { org: org, id: 11, name: 'User 1' });
-  const book = ormAdmin.em.create(Book, { org: org, id: 21, name: 'Book 1', user: user });
+  const org = orm.em.create(Organisation, { id: 1 });
+  const user = orm.em.create(User, { org: org, id: 11, name: 'User 1' });
+  const book = orm.em.create(Book, { org: org, id: 21, name: 'Book 1', user: user });
 
-  await ormAdmin.em.flush();
-
-  // ormApp = await MikroORM.init({
-  //   contextName: 'app',
-  //   entities: [Organisation, User, Book],
-  //   debug: ["query", "query-params"],
-  //   dbName: 'test',
-  //   host: 'postgre',
-  //   allowGlobalContext: true,
-  // });
+  await orm.em.flush();
 });
 
 afterAll(async () => {
-  await ormAdmin.close();
-  // await ormApp.close();
+  await orm.close();
 });
 
 test('admin test case', async () => {
-  const orm = ormAdmin;
   const bookQ1 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
   console.dir((wrap(bookQ1) as any).__originalEntityData);
   // { org: 1, id: 21, name: 'Book 1', user: [ 1, 11 ] }
@@ -96,13 +84,3 @@ test('admin test case', async () => {
 
   expect(changes).toHaveLength(0);
 });
-
-// test('app test case', async () => {
-//   const bookQ1 = await ormApp.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-//   const bookQ2 = await ormApp.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-
-//   ormApp.em.getUnitOfWork().computeChangeSets();
-//   const changes = ormApp.em.getUnitOfWork().getChangeSets();
-
-//   expect(changes).toHaveLength(0);
-// });
