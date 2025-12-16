@@ -1,88 +1,67 @@
 /* eslint-disable */
-import { Entity, ManyToOne, MikroORM, PrimaryKey, Property, ref, Ref, wrap } from "@mikro-orm/sqlite";
+import { Check, Entity, ManyToOne, MikroORM, PrimaryKey, Property, Ref } from "@mikro-orm/postgresql";
 
-@Entity()
-class Organisation {
-  @PrimaryKey({ fieldName: 'org_id' })
-  id!: number;
-}
-
-@Entity({ abstract: true })
-abstract class OrgEntity {
-  @ManyToOne({
-    entity: () => Organisation,
-    fieldName: 'org_id',
-    primary: true,
-    ref: true
-  })
-  org: Ref<Organisation> = ref(Organisation, 1);
-
+@Entity({ tableName: 'field' })
+@Check({
+  name: 'field_check_1',
+  expression: "parent_id IS NOT NULL OR properties->>'type' = 'text'"
+})
+@Check({
+  name: 'field_check_2',
+  expression: `parent_id IS NULL OR properties->>'type' != 'text'`
+})
+class Field {
   @PrimaryKey()
   id!: number;
-}
 
-@Entity()
-class User extends OrgEntity {
-  @Property()
-  name!: string;
-}
-
-@Entity()
-class Book extends OrgEntity {
-  @Property()
-  name!: string;
+  @Property({ type: 'jsonb' })
+  properties!: { type: string };
 
   @ManyToOne({
-    entity: () => User,
-    fieldNames: ['org_id', 'user_id'],
-    ownColumns: ['user_id'],
-    ref: true,
+    entity: () => Field,
+    nullable: true,
+    ref: true
   })
-  user!: Ref<User>;
+  parent?: Ref<Field>;
 }
 
 let orm: MikroORM;
 
 beforeAll(async () => {
   orm = await MikroORM.init({
-    contextName: 'admin',
-    entities: [Organisation, User, Book],
-    debug: ["query", "query-params"],
-    dbName: ':memory:',
-    // host: 'postgre',
+    entities: [Field],
+    debug: [],
+    dbName: 'james',
+    host: 'localhost',
+    user: 'postgres',
+    password: 'example',
+    port: 7432,
     allowGlobalContext: true,
   });
-
-  await orm.schema.refreshDatabase();
-
-  const org = orm.em.create(Organisation, { id: 1 });
-  const user = orm.em.create(User, { org: org, id: 11, name: 'User 1' });
-  const book = orm.em.create(Book, { org: org, id: 21, name: 'Book 1', user: user });
-
+  await orm.schema.refreshDatabase({ dropDb: true });
   await orm.em.flush();
+  await orm.close();
 });
-
-beforeEach(() => { orm.em.clear() });
 
 afterAll(async () => {
   await orm.close();
 });
 
 test('admin test case', async () => {
-  const bookQ1 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-  console.dir((wrap(bookQ1) as any).__originalEntityData);
-  // { org: 1, id: 21, name: 'Book 1', user: [ 1, 11 ] }
+  // simulate the app restarting and re-initializing the ORM
+  orm = await MikroORM.init({
+    entities: [Field],
+    debug: [],
+    dbName: 'james',
+    host: 'localhost',
+    user: 'postgres',
+    password: 'example',
+    port: 7432,
+    allowGlobalContext: true,
+  });
 
-
-  const bookQ2 = await orm.em.findOneOrFail(Book, { id: 21 }, { populate: ['user'] });
-  console.dir((wrap(bookQ2) as any).__originalEntityData);
-  // { org: 1, id: 21, name: 'Book 1', user: { org: 1, id: 11 } }
-
-  // Note: the original entity data for the user relation is different after the second query.
-  // The entity comparator then thinks the user relation has changed from [1, 11] to {org: 1, id: 11}.
-
-  orm.em.getUnitOfWork().computeChangeSets();
-  const changes = orm.em.getUnitOfWork().getChangeSets();
-
-  expect(changes).toHaveLength(0);
+  const diff = await orm.schema.getUpdateSchemaSQL();
+  // there should be no schema changes
+  expect(diff).toHaveLength(0);
+  console.log(diff)
 });
